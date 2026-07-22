@@ -1,0 +1,8 @@
+# - Forked from https://kubernetes.io/docs/tutorials/cluster-management/namespaces-walkthrough/
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clixx-prod
+  labels:
+    name: clixx-prod
