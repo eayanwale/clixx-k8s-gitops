@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clixx-web-deployment
+  namespace: clixx-prod
+  labels:
+    app: clixx-web-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: clixx-web-app
+  template:
+    metadata:
+      labels:
+        app: clixx-web-app
+    spec:
+      imagePullSecrets:
+        - name: ecr-registry-key
+      initContainers:
+        - name: seed-wp-config
+          image: 111111111111.dkr.ecr.us-east-1.amazonaws.com/clixx-repository:clixx-image-latest
+          command:
+            - sh
+            - -c
+            - test -f /var/www/html/wp-config.php || cp /template/wp-config.php /var/www/html/wp-config.php
+          volumeMounts:
+            - name: wp-config-storage
+              mountPath: /var/www/html
+            - name: wp-config-template
+              mountPath: /template
+              readOnly: true
+      containers:
+        - name: clixx-web-app
+          image: 111111111111.dkr.ecr.us-east-1.amazonaws.com/clixx-repository:clixx-image-latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: wp-config-storage
+              mountPath: /var/www/html/wp-config.php   # exact file path in container
+              subPath: wp-config.php                    # exact file path inside the volume
+      volumes:
+        - name: wp-config-storage
+          persistentVolumeClaim:
+            claimName: clixx-config-claim
+        - name: wp-config-template
+          configMap:
+            name: wp-config-template

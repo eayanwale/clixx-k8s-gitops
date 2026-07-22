@@ -1,0 +1,14 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: wp-config-efs
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: efs.csi.aws.com
+reclaimPolicy: Retain # default value is Delete
+volumeBindingMode: Immediate 
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: fs-00000000000000002
+  directoryPerms: "0755"
+  basePath: "/clixx-prod"

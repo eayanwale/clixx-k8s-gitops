@@ -1,0 +1,15 @@
+# - Forked from https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: clixx-config-claim
+  namespace: clixx-prod
+spec:
+  accessModes:
+    - ReadWriteMany
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 1Gi  
+  storageClassName: wp-config-efs
