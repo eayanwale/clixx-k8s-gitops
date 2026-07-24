@@ -1,5 +1,3 @@
-def runner = "ENOCH"
-
 pipeline {
     agent any
 
@@ -27,12 +25,6 @@ pipeline {
         IMAGE_UPDATER_MANIFEST = 'https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/stable/config/install.yaml'
         SSH_OPTS         = '-o StrictHostKeyChecking=accept-new'
         RECREATE_GIT_CREDS = "${params.RECREATE_GIT_CREDS}"
-        MCP_NAME         = 'clixx-k8s'
-        // Assumed paths per docs/mcp-server-setup.md's manual setup (venv/server.py
-        // created in the ubuntu user's home dir) - correct these if that's not
-        // actually where they live on k8control.
-        MCP_VENV_PYTHON  = '/home/ubuntu/mcp-venv/bin/python'
-        MCP_SERVER_PATH  = '/home/ubuntu/server.py'
     }
 
     stages {
@@ -67,23 +59,6 @@ pipeline {
                     } else {
                         echo "RDS in transient state '${rdsState}' (not stopped, not available) - leaving it alone rather than risk an invalid-state API error."
                     }
-                }
-            }
-        }
-
-        stage('Notify start') {
-            steps {
-                script {
-                    def action = (env.INFRA_WAS_STOPPED == 'true') ? 'WAKING INFRA + SYNCING' : 'SYNCING'
-                    slackSend (
-                        color: '#FFFF00',
-                        message: """
-                    --${action}--
-Runner: ${runner}
-Job: ${env.JOB_BASE_NAME} [${env.BUILD_NUMBER}]
-Build: (${env.BUILD_URL})
-"""
-                    )
                 }
             }
         }
@@ -293,24 +268,6 @@ REMOTE
     post {
         success {
             echo "ArgoCD UI access, if needed: SSH tunnel with 'ssh -L 8080:localhost:8080 ${env.CP_USER}@${env.CP_HOST}', then on that same box run 'kubectl -n argocd port-forward svc/argocd-server 8080:443', then open https://localhost:8080 locally."
-            // The MCP server (docs/mcp-server-setup.md) is spawned per-connection
-            // over SSH, not a persistent process - nothing to "start" here, but
-            // k8control has no Elastic IP, so any earlier `claude mcp add`
-            // registration has the previous run's now-stale IP baked into it.
-            // Re-run this to point it at the current one.
-            echo "MCP server re-registration (control-plane IP may have changed): claude mcp remove ${env.MCP_NAME} 2>/dev/null; claude mcp add --transport stdio ${env.MCP_NAME} -- ssh -o BatchMode=yes ${env.CP_USER}@${env.CP_HOST} ${env.MCP_VENV_PYTHON} ${env.MCP_SERVER_PATH}"
-            slackSend(
-                channel: '#stackjenkins',
-                color: 'good',
-                message: "SUCCESS: ${env.JOB_BASE_NAME} #${env.BUILD_NUMBER} (${env.BUILD_URL})"
-            )
-        }
-        failure {
-            slackSend(
-                channel: '#stackjenkins',
-                color: 'danger',
-                message: "FAILED: ${env.JOB_BASE_NAME} #${env.BUILD_NUMBER} (${env.BUILD_URL})"
-            )
         }
     }
 }
