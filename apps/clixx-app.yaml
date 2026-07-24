@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: clixx
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: clixx=111111111111.dkr.ecr.us-east-1.amazonaws.com/clixx-repository
+    argocd-image-updater.argoproj.io/clixx.update-strategy: latest
+    argocd-image-updater.argoproj.io/clixx.allow-tags: regexp:^clixx-image-\d+\.\d+\.\d+$
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: development
+    argocd-image-updater.argoproj.io/git-credentials-secret: argocd/git-creds
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/eayanwale/clixx-gitops.git
+    targetRevision: development
+    path: manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: clixx-prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
