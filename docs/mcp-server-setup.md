@@ -248,3 +248,27 @@ claude mcp list
 
 should show `clixx-k8s` connected. Then, in a Claude Code session, ask
 something like "list pods in clixx-prod" — Claude will call the tool.
+
+## Not persistent, and why that matters after a stop/start
+
+There is no long-running MCP server process on `k8control` — the `claude mcp
+add` command above spawns `server.py` fresh over SSH *per connection*, and it
+exits when that connection closes. Nothing needs to be "started" after the
+instance reboots; the venv and `server.py` just sit on disk (survive
+stop/start fine, same EBS root volume).
+
+What **does** break on a stop/start cycle: `k8control` has no Elastic IP, so
+its public IP changes every time it's restarted, and that IP is baked
+directly into the `claude mcp add` command above. After any restart, the
+previously-registered connection points at a now-wrong IP. Re-run the
+registration with the current IP to fix it:
+
+```bash
+claude mcp remove clixx-k8s
+claude mcp add --transport stdio clixx-k8s -- ssh -o BatchMode=yes <user>@<new-control-plane-IP> /path/to/mcp-venv/bin/python /path/to/server.py
+```
+
+The `clixx-gitops` Jenkins pipeline prints this exact command (with the
+current run's IP already filled in) at the end of every successful run, in
+its `post { success }` block — copy it from there instead of looking up the
+IP by hand.
