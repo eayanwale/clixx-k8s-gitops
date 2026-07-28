@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: clixx-ingress
+  namespace: clixx-prod
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: k8s.clixx.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: clixx-service
+                port:
+                  number: 8080

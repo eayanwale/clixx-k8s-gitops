@@ -8,6 +8,7 @@ resources:
   - pvc.yaml
   - clixx-deployment.yaml
   - clixx-lb-np.yaml
+  - clixx-ingress.yaml
 
 configMapGenerator:
   - name: wp-config-template
