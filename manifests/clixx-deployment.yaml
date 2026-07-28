@@ -34,6 +34,9 @@ spec:
         - name: clixx-web-app
           image: 111111111111.dkr.ecr.us-east-1.amazonaws.com/clixx-repository:clixx-image-latest
           imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: clixx-secrets
           ports:
             - containerPort: 80
           volumeMounts:
