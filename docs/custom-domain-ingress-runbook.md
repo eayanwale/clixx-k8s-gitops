@@ -48,6 +48,29 @@ creates its own `NodePort` Service, same shape as `clixx-lb-np.yaml`):
    ```
    No HTTPS nodePort needed — the ALB is where 443 terminates.
 
+4. **Tell ingress-nginx to trust the ALB's forwarded headers** — not
+   optional if anything behind this ingress cares whether the original
+   request was HTTP or HTTPS (clixx does: `manifests/wp-config.php` sets
+   `$_SERVER['HTTPS']` from `HTTP_X_FORWARDED_PROTO`). By default
+   ingress-nginx **ignores** any inbound `X-Forwarded-Proto` and overwrites
+   it based on its own connection to the ALB — which is always plain HTTP,
+   since that's where TLS terminates (Phase B). Every backend then sees
+   `X-Forwarded-Proto: http` regardless of what the client actually used,
+   so anything that redirects based on that header (WordPress does, on
+   every request) 301s to itself forever — discovered 2026-08-05 as a
+   `k8s.clixx.example.com redirected you too many times` loop that had
+   nothing to do with clixx's own config, and won't be specific to
+   whatever's deployed behind this ingress next either:
+   ```bash
+   kubectl -n ingress-nginx patch configmap ingress-nginx-controller \
+     --type merge -p '{"data":{"use-forwarded-headers":"true"}}'
+   ```
+   ingress-nginx watches its ConfigMap and reloads on its own; restart the
+   deployment only if a recheck shows it didn't pick it up:
+   ```bash
+   kubectl -n ingress-nginx rollout restart deployment ingress-nginx-controller
+   ```
+
 ## Phase B — ALB: ACM cert, listeners, target group
 
 1. **Request a cert in ACM** for `k8s.clixx.example.com` and DNS-validate
