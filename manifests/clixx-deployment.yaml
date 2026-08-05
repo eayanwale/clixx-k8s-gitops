@@ -23,7 +23,7 @@ spec:
           command:
             - sh
             - -c
-            - rm -f /var/www/html/wp-config.php && cp /template/wp-config.php /var/www/html/wp-config.php
+            - test -f /var/www/html/wp-config.php || cp /template/wp-config.php /var/www/html/wp-config.php
           volumeMounts:
             - name: wp-config-storage
               mountPath: /var/www/html
