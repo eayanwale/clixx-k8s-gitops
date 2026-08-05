@@ -9,6 +9,6 @@ reclaimPolicy: Retain # default value is Delete
 volumeBindingMode: Immediate 
 parameters:
   provisioningMode: efs-ap
-  fileSystemId: fs-00000000000000002
+  fileSystemId: fs-00000000000000001
   directoryPerms: "0755"
   basePath: "/clixx-prod"
