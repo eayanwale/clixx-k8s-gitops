@@ -145,6 +145,18 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.pas
 
 Rotate/delete `argocd-initial-admin-secret` after first login.
 
+**If the local tunnel starts refusing connections mid-session** —
+`channel N: open failed: connect failed: Connection refused` in your local
+`ssh -L` terminal — that's not the SSH tunnel breaking, it's the *remote*
+`kubectl port-forward` no longer running. It's a foreground process on
+`k8control`; closing that terminal, the SSH session dropping, or the
+`argocd-server` pod restarting all kill it silently, with no message on
+your end. Fix: just re-run the `kubectl port-forward` command above on
+`k8control` — the existing local `ssh -L` tunnel picks it back up without
+needing to reconnect. Same applies to any other port-forward using this
+same two-hop pattern (e.g. the Prometheus one in
+`docs/prometheus-grafana-runbook.md`).
+
 ## Phase 2 — Point ArgoCD at this repo
 
 Add an `Application` CR (new file, e.g. `apps/clixx-app.yaml` — this repo's
@@ -431,6 +443,30 @@ run on every push via the webhook trigger.
    default poll.
 6. `kubectl -n clixx-prod rollout status deploy/clixx-web-deployment` shows
    the new pods, then confirm in-browser via the existing NodePort/LB.
+
+## Known gotcha — immutable fields cause permanent sync failures (2026-08-05)
+
+Hit this on `clixx`'s first real sync after finally creating the
+`clixx-gitops-repo-creds` Secret from Phase 2 (until then the Application
+couldn't even clone the repo, so this had never surfaced): `wp-config-efs`'s
+live `fileSystemId` had drifted from what was committed in
+`manifests/storage-class.yaml` — the EFS filesystem itself had apparently
+been recreated at some point without the manifest being updated to match.
+`StorageClass.parameters` is **immutable** in Kubernetes — the API server
+rejects any patch to it outright, even a value-for-value no-op, once the
+object exists. Combined with `syncPolicy.automated` + `selfHeal: true`,
+ArgoCD doesn't fail once and stop — it retries the same doomed patch on
+every reconcile (`retried 5 times` shows up in `Operation State`, then it
+loops again), leaving the whole `Application` stuck `OutOfSync` even though
+every other resource in it synced fine.
+
+Not specific to this one field — any resource with an immutable field will
+do this if git and live ever drift on that field. Diagnosis: `kubectl -n
+argocd describe application <name>` → the `Conditions`/`Operation State`
+block names the exact field and says `field is immutable`. The fix is
+never a patch: either update git to match live (if live is the correct
+value — as it was here), or delete the object and let ArgoCD recreate it
+fresh from git (if git is the correct value).
 
 ## Decisions resolved this round (2026-07-24)
 

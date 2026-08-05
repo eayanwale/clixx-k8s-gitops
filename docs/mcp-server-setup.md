@@ -49,16 +49,22 @@ Then create the venv and install into it:
 ```bash
 python3 -m venv mcp-venv
 source mcp-venv/bin/activate
-pip install "mcp[cli]" kubernetes
+pip install "mcp[cli]<2.0" kubernetes
 ```
 
 If `bin/activate` is still missing after this, or `ls mcp-venv/bin` shows
 anything unexpected, don't debug it — `rm -rf mcp-venv` and recreate from
 scratch rather than chasing a corrupted venv.
 
-`pip`/`uv` won't resolve to the v2 pre-release unless you explicitly
-request it (e.g. `mcp==2.0.0a1`), so a plain `pip install "mcp[cli]"`
-gets you the stable v1.x API used below.
+**The `<2.0` pin is required, not optional, as of 2026-08-05.** This doc
+originally said a plain `pip install "mcp[cli]"` was enough, on the
+assumption v2 was still an opt-in alpha (`mcp==2.0.0a1`). That assumption
+broke on 2026-07-28: `mcp` shipped a real, stable `2.0.0` release that
+renamed `FastMCP` → `MCPServer` and moved it from `mcp.server.fastmcp` to
+`mcp.server.mcpserver` — a plain unpinned install now silently pulls 2.0.0,
+and `server.py` below (written against the v1.x API) fails with
+`ModuleNotFoundError: No module named 'mcp.server.fastmcp'`. Pin to `<2.0`
+until `server.py` is deliberately ported to the new API.
 
 ## 2. Write `server.py`
 
