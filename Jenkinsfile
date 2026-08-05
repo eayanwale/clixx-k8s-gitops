@@ -19,7 +19,7 @@ pipeline {
         AWS_REGION       = 'us-east-1'
         AWS_PROFILE      = 'stackprog-dev'   // assumes role/Engineer in the dev account via EC2 instance metadata, see ~/.aws/config 
         ECR_REGISTRY     = '111111111111.dkr.ecr.us-east-1.amazonaws.com/clixx-repository'
-        EC2_INSTANCE_IDS = 'i-0aaaaaaaaaaaaaaa2 i-0aaaaaaaaaaaaaaa1 i-0aaaaaaaaaaaaaaa5'
+        EC2_INSTANCE_IDS = 'i-0aaaaaaaaaaaaaaa3 i-0aaaaaaaaaaaaaaa6 i-0aaaaaaaaaaaaaaa4'
         RDS_INSTANCE_ID  = 'k8s-clixx-db'
         CP_USER          = 'ubuntu'
         CP_TAG_NAME      = 'k8control'   
